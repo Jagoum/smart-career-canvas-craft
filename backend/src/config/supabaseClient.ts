@@ -32,7 +32,9 @@ export const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
 });
 
 // Optional: Add a simple log to confirm client initialization (can be removed in production)
-console.log('Supabase client initialized for backend use.');
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Supabase client initialized for backend use.');
+}
 // To verify, you might want to add a simple query here during setup,
 // e.g., supabase.from('your_table_name').select('*').limit(1)
 // but ensure it doesn't fail if the table doesn't exist yet.

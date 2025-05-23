@@ -1,3 +1,25 @@
 node_modules/
 dist/
+
+# Environment files
 .env
+.env.*
+# Local environment files not to be committed
+!.env.example 
+
+# Log files
+*.log
+npm-debug.log*
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

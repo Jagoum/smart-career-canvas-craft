@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import authMiddleware from '../middleware/authMiddleware';
-import { validateBody } from '../middleware/validationMiddleware'; // Import validation middleware
-import { saveResumeSchema } from '../validators/resumeValidators'; // Import resume schemas
-import { generateResumeContentSchema, reviewResumeContentSchema } from '../validators/aiValidators'; // Import AI schemas
+import { validate } from '../middleware/validationMiddleware'; // Import new validate middleware
+import { saveResumeSchema } from '../validators/resumeValidators'; 
+import { generateResumeContentSchema, reviewResumeContentSchema } from '../validators/aiValidators';
+import { idParamSchema } from '../validators/commonValidators'; // Import ID schema
 import { saveResume, getResumeById } from '../controllers/resumeController';
 import { generateResumeContent, reviewResumeContent } from '../controllers/aiController';
 
@@ -13,20 +14,24 @@ const router = Router();
 router.post(
   '/save',
   authMiddleware,
-  validateBody(saveResumeSchema),
+  validate({ body: saveResumeSchema }), // Use new validate middleware
   saveResume
 );
 
 // GET /api/resume/:id - Get a specific resume by its ID
-// Note: Param validation could be added here if desired using a different validator (e.g., validateParams)
-router.get('/:id', authMiddleware, getResumeById);
+router.get(
+  '/:id',
+  authMiddleware,
+  validate({ params: idParamSchema }), // Add params validation
+  getResumeById
+);
 
 // --- AI-Powered Resume Features ---
 // POST /api/resume/generate - Generate resume content using AI
 router.post(
   '/generate',
   authMiddleware,
-  validateBody(generateResumeContentSchema),
+  validate({ body: generateResumeContentSchema }), // Use new validate middleware
   generateResumeContent
 );
 
@@ -34,7 +39,7 @@ router.post(
 router.post(
   '/review',
   authMiddleware,
-  validateBody(reviewResumeContentSchema),
+  validate({ body: reviewResumeContentSchema }), // Use new validate middleware
   reviewResumeContent
 );
 

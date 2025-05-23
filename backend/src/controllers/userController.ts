@@ -1,43 +1,67 @@
-import { Response } from 'express';
+import { Request, Response } from 'express'; // Import Request
 import { supabase } from '../config/supabaseClient'; // Ensure this path is correct
 import { UserProfile } from '../models'; // Assuming UserProfile is exported from models/index.ts
 
 // The global type augmentation in src/types/express.d.ts handles 'req.user'
-// No need to import AuthenticatedRequest if using global augmentation
 
-export const getProfile = async (req: Express.Request, res: Response) => {
+export const getProfile = async (req: Request, res: Response) => {
   if (!req.user || !req.user.sub) {
-    // This case should ideally be handled by authMiddleware,
-    // but as a safeguard:
-    return res.status(401).json({ message: 'Unauthorized: User not authenticated.' });
+    return res.status(401).json({
+      success: false,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'User not authenticated.',
+      },
+    });
   }
 
   const userId = req.user.sub;
 
   try {
     const { data, error, status } = await supabase
-      .from('profiles') // Make sure 'profiles' is your actual table name
-      .select('*') // Select all columns or specify needed ones: 'id, full_name, avatar_url'
+      .from('profiles')
+      .select('id, full_name, avatar_url, created_at, updated_at') // Example of specific column selection
       .eq('id', userId)
-      .single(); // Expects a single row or null
+      .single();
 
-    if (error && status !== 406) { // 406 is returned by PostgREST if 'single' finds no rows
-      console.error('Error fetching profile:', error);
-      return res.status(500).json({ message: 'Error fetching user profile.', error: error.message });
+    if (error && status !== 406) { // 406 is PostgREST for "No rows found" with .single()
+      console.error('Supabase error fetching profile:', error);
+      return res.status(status || 500).json({ // Use status from Supabase error if available
+        success: false,
+        error: {
+          code: 'SUPABASE_ERROR',
+          message: error.message || 'Error fetching user profile from database.',
+          details: error,
+        },
+      });
     }
 
     if (!data) {
-      return res.status(404).json({ message: 'User profile not found.' });
+      return res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'User profile not found.',
+        },
+      });
     }
 
-    // Cast to UserProfile if necessary, or ensure 'data' matches the interface
-    const userProfile: UserProfile = data;
-    return res.status(200).json(userProfile);
+    // Data successfully fetched
+    return res.status(200).json({
+      success: true,
+      data: data as UserProfile, // Ensure data matches UserProfile structure
+    });
 
   } catch (err) {
     console.error('Unexpected error in getProfile:', err);
-    // It's good practice to check the type of err if you want to provide more specific messages
-    // For now, a generic server error.
-    return res.status(500).json({ message: 'An unexpected error occurred.' });
+    const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'An unexpected error occurred while fetching the profile.',
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      },
+    });
   }
 };

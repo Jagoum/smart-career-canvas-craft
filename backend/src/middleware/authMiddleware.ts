@@ -4,12 +4,10 @@ import dotenv from 'dotenv';
 
 dotenv.config(); // Ensure environment variables are loaded
 
-// Define a custom Request type
-export interface AuthenticatedRequest extends Request {
-  user?: string | JwtPayload; // Or a more specific interface for your user payload
-}
+// The global type augmentation in src/types/express.d.ts handles 'req.user'.
+// No need for a local AuthenticatedRequest interface here.
 
-const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -27,8 +25,20 @@ const authMiddleware = (req: AuthenticatedRequest, res: Response, next: NextFunc
   }
 
   try {
-    const decoded = jwt.verify(token, jwtSecret);
-    req.user = decoded; // Attach decoded user payload to request object
+    // The type of 'decoded' will be inferred by jwt.verify.
+    // If using the global Express.Request type, req.user should match its definition.
+    const decoded = jwt.verify(token, jwtSecret, { algorithms: ['HS256'] });
+
+    // Ensure the decoded payload has a 'sub' property, consistent with our global type.
+    if (typeof decoded === 'object' && decoded !== null && 'sub' in decoded) {
+      // Now TypeScript knows req.user can be assigned this shape if the global type is compatible.
+      req.user = decoded as { sub: string; [key: string]: any; };
+    } else {
+      // Handle cases where token is valid but doesn't contain 'sub' as expected.
+      // This might be an issue with token generation or an unexpected token type.
+      console.error('Token decoded successfully but is missing the "sub" property.');
+      return res.status(401).json({ message: 'Unauthorized: Invalid token payload structure.' });
+    }
     next();
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {

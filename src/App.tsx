@@ -16,6 +16,11 @@ import DashboardPage from "@/pages/DashboardPage";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import NotFound from "./pages/NotFound";
 
+// Import new placeholder pages
+import ResumeNewPage from "@/pages/ResumeNewPage";
+import ResumeReviewPage from "@/pages/ResumeReviewPage";
+import CoverLetterNewPage from "@/pages/CoverLetterNewPage";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -36,6 +41,9 @@ const App = () => (
               {/* Protected Routes */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/resume/new" element={<ResumeNewPage />} /> 
+                <Route path="/resume/review" element={<ResumeReviewPage />} />
+                <Route path="/cover-letter/new" element={<CoverLetterNewPage />} />
                 {/* Add more protected routes here */}
               </Route>
               

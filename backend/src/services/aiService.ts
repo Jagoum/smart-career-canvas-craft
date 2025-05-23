@@ -4,17 +4,22 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const apiKey = process.env.OPENAI_API_KEY;
+let openai: OpenAI | null = null;
 
 if (!apiKey) {
-  console.error('OPENAI_API_KEY is not set in environment variables.');
-  // Depending on policy, you might throw an error to stop the app from starting,
-  // or allow it to run with AI features disabled (though throwing is safer for dev).
-  throw new Error('OpenAI API key is missing. AI features will be disabled.');
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('OPENAI_API_KEY is not set. AI features will be disabled in production.');
+  } else {
+    console.error('OPENAI_API_KEY is not set in environment variables. AI features will be disabled.');
+    // Optional: throw error in non-production to make it more obvious during development
+    // throw new Error('OpenAI API key is missing. AI features will be disabled.');
+  }
+} else {
+  openai = new OpenAI({
+    apiKey: apiKey,
+  });
+  console.log('OpenAI client initialized.');
 }
-
-const openai = new OpenAI({
-  apiKey: apiKey,
-});
 
 export interface AICompletionParams {
   systemPrompt: string;
@@ -32,11 +37,16 @@ export const generateTextCompletion = async ({
   temperature = 0.7,      // Default temperature
   maxTokens = 1500,       // Default max tokens for more comprehensive outputs
 }: AICompletionParams): Promise<string | null> => {
-  try {
-    console.log(`Sending request to OpenAI with model: ${model}, temp: ${temperature}, maxTokens: ${maxTokens}`);
-    console.log(`System Prompt: ${systemPrompt.substring(0,100)}...`); // Log beginning of prompt
-    console.log(`User Prompt: ${userPrompt.substring(0,100)}...`);
+  if (!openai) {
+    console.error('OpenAI client is not initialized. Cannot generate text completion.');
+    // Return a specific error message or null, depending on how controllers should handle this
+    throw new Error('AI service is not available due to missing API key.'); 
+    // Or return null; and let controller handle: return null;
+  }
 
+  try {
+    // Modified logging to avoid exposing sensitive prompt data
+    console.log(`Sending AI request to model: ${model} with temp: ${temperature}, maxTokens: ${maxTokens}. System and user prompts are set.`);
 
     const completion = await openai.chat.completions.create({
       model: model,
@@ -77,5 +87,5 @@ export const generateTextCompletion = async ({
 };
 
 // Exporting the client instance if it needs to be used directly for other types of operations
-// (e.g., embeddings, fine-tuning, etc.)
-export default openai;
+// (e.g., embeddings, fine-tuning, etc.). It might be null if API key is missing.
+export default openai; 

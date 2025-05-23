@@ -1,7 +1,8 @@
-import express, { Application, Request, Response } from 'express';
+import express, { Application, Request, Response, NextFunction } from 'express'; // Added NextFunction
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit'; // Import rate-limit
 import cors from 'cors'; // Import cors
+import http from 'http'; // For graceful shutdown
 
 dotenv.config(); // Load environment variables from .env file
 
@@ -34,15 +35,11 @@ const globalLimiter = rateLimit({
 app.use(globalLimiter); // Apply to all requests
 
 // Consider applying more specific limiters to AI routes if needed
-// Example:
-// const aiLimiter = rateLimit({
-//   windowMs: 60 * 60 * 1000, // 1 hour
-//   max: 20, // Limit each IP to 20 AI requests per hour
-//   message: "Too many AI requests from this IP, please try again later."
-// });
-// app.use('/api/resume/generate', aiLimiter);
-// app.use('/api/resume/review', aiLimiter);
-// app.use('/api/cover-letter/generate', aiLimiter);
+const aiLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 20, // Limit each IP to 20 AI requests per hour
+  message: "Too many AI-powered requests from this IP, please try again after an hour."
+});
 
 
 // --- Core Middlewares ---
@@ -57,17 +54,47 @@ app.get('/', (req: Request, res: Response) => {
 });
 
 // API routes
-app.use('/api/profile', userRoutes); // Mount user profile routes (GET /api/profile)
-app.use('/api/templates', templateRoutes); // Mount template routes (GET /api/templates)
-app.use('/api/resume', resumeRoutes); // Mount resume management routes (includes /generate, /review)
-app.use('/api/cover-letter', coverLetterRoutes); // Mount cover letter routes (includes /generate)
+app.use('/api/profile', userRoutes); 
+app.use('/api/templates', templateRoutes); 
 
-// Global error handler (optional, but good practice)
-// app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-//   console.error(err.stack);
-//   res.status(500).send('Something broke!');
-// });
+// Apply AI rate limiter to AI-specific routes
+app.use('/api/resume/generate', aiLimiter);
+app.use('/api/resume/review', aiLimiter);
+app.use('/api/cover-letter/generate', aiLimiter);
 
-app.listen(port, () => {
+app.use('/api/resume', resumeRoutes); 
+app.use('/api/cover-letter', coverLetterRoutes); 
+
+// Global error handler
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error("Global Error Handler Caught:", err.stack);
+  // Avoid sending stack trace to client in production
+  if (process.env.NODE_ENV === 'production') {
+    res.status(500).json({ message: 'Something broke on the server!' });
+  } else {
+    res.status(500).json({ message: 'Something broke!', error: err.message, stack: err.stack });
+  }
+});
+
+const server = app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
+
+// Graceful Shutdown
+const gracefulShutdown = (signal: string) => {
+  console.log(`\n${signal} signal received. Shutting down gracefully...`);
+  server.close(() => {
+    console.log('HTTP server closed.');
+    // Add any other cleanup tasks here (e.g., database connections)
+    process.exit(0);
+  });
+
+  // Force close server after 10 seconds if it hasn't closed yet
+  setTimeout(() => {
+    console.error('Could not close connections in time, forcefully shutting down');
+    process.exit(1);
+  }, 10000); // 10 seconds
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

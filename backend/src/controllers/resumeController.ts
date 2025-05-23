@@ -1,9 +1,9 @@
-import { Response } from 'express';
+import { Request, Response } from 'express'; // Import Request
 import { supabase } from '../config/supabaseClient';
 import { Resume } from '../models'; // Assuming Resume is exported from models/index.ts
 // AuthenticatedRequest will be available globally via src/types/express.d.ts
 
-export const saveResume = async (req: Express.Request, res: Response) => {
+export const saveResume = async (req: Request, res: Response) => {
   if (!req.user || !req.user.sub) {
     return res.status(401).json({ message: 'Unauthorized: User not authenticated.' });
   }
@@ -56,7 +56,7 @@ export const saveResume = async (req: Express.Request, res: Response) => {
   }
 };
 
-export const getResumeById = async (req: Express.Request, res: Response) => {
+export const getResumeById = async (req: Request, res: Response) => {
   if (!req.user || !req.user.sub) {
     return res.status(401).json({ message: 'Unauthorized: User not authenticated.' });
   }
