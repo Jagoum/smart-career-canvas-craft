@@ -9,7 +9,189 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      cover_letters: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          job_description: string | null
+          resume_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          job_description?: string | null
+          resume_id?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          job_description?: string | null
+          resume_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cover_letters_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          role: Database["public"]["Enums"]["role_type"]
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["role_type"]
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          role?: Database["public"]["Enums"]["role_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      resume_feedback: {
+        Row: {
+          created_at: string
+          feedback_content: Json
+          id: string
+          resume_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_content: Json
+          id?: string
+          resume_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_content?: Json
+          id?: string
+          resume_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_feedback_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_templates: {
+        Row: {
+          category: Database["public"]["Enums"]["template_category"]
+          content: Json
+          created_at: string
+          description: string
+          id: string
+          is_premium: boolean | null
+          name: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          category: Database["public"]["Enums"]["template_category"]
+          content: Json
+          created_at?: string
+          description: string
+          id?: string
+          is_premium?: boolean | null
+          name: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["template_category"]
+          content?: Json
+          created_at?: string
+          description?: string
+          id?: string
+          is_premium?: boolean | null
+          name?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      resumes: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          is_public: boolean | null
+          job_description: string | null
+          public_url: string | null
+          template_id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          is_public?: boolean | null
+          job_description?: string | null
+          public_url?: string | null
+          template_id: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          is_public?: boolean | null
+          job_description?: string | null
+          public_url?: string | null
+          template_id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resumes_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "resume_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +200,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      role_type: "user" | "admin"
+      template_category:
+        | "professional"
+        | "creative"
+        | "academic"
+        | "modern"
+        | "simple"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +321,15 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      role_type: ["user", "admin"],
+      template_category: [
+        "professional",
+        "creative",
+        "academic",
+        "modern",
+        "simple",
+      ],
+    },
   },
 } as const
